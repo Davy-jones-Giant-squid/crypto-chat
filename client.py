@@ -23,8 +23,17 @@ def run():
   '''
   try:
     s.connect((ip, port))
+    s.send('IAM chris')
+    hi = s.recv(1024)
+    s.send('SENDMSG chris hi there')
+    hi = s.recv(1024)
+    s.send('GETMSG')
     hi = s.recv(1024)
     print hi
+    s.send('GETMSG')
+    hi = s.recv(1024)
+    print hi
+
   except socket.gaierror, msg:
     print 'Failed to create socket. Error code: ' + str(msg[0]) + ' . Error message: ' + msg[1]
     sys.exit()
