@@ -239,8 +239,12 @@ def serve_request(user_request, username, conn, message_db):
 			send_response(conn, OK)
 		except:
 			send_response(conn, BAD)
-
-
+	elif user_request[0] == 'USERLIST':
+		try:
+			user_list = message_db.get_user_list()
+			send_response(conn, OK, user_list)
+		except:
+			send_response(conn, BAD)
 ''' 
       ---client_thread(...)---
 Parameters: conn - connection socket to client
