@@ -60,7 +60,16 @@ def send_message(conn):
     print 'Success!'
   else:
     print 'Failed... Make sure recipient is online and spelling is correct'
-  
+
+def get_messages(conn):
+   while True:
+    conn.send("GETMSG")
+    msg = conn.recv(1024)
+    if not '*None*' in msg:
+      print msg[2:], '\n'
+    else:
+      break
+
 def chat_service(conn, username):
   print "\n*Chat Service Active*\n"
   commands_available()
@@ -74,8 +83,7 @@ def chat_service(conn, username):
       elif msg == 'send' or msg == 's':
         send_message(conn)
       elif msg == 'get' or msg == 'g':
-        continue #temp
-        #get_messages()
+        get_messages(conn)
       elif msg == 'online' or msg == 'o':
         continue #temp
         #get_whoose_online()
