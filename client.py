@@ -1,5 +1,18 @@
 import socket
 import sys
+from Crypto.PublicKey import RSA
+
+def RSA_key_generation():
+  """
+  Generate RSA Keys and store them in mykey.pem
+  """
+  key = RSA.generate(2048)
+  private_key = key.exportKey('PEM')
+  public_key= key.publickey().exportKey('PEM')
+
+  return private_key, public_key
+  #print key.publickey().exportKey('PEM')
+  
 
 def establish_socket_connection(ip, port = 8080):
   try:
@@ -115,6 +128,7 @@ def main():
   ip = sys.stdin.readline().strip()
   
   conn = establish_socket_connection(ip)
+  private, public = RSA_key_generation()
   claim_username(conn, username)
   chat_service(conn, username)
    
