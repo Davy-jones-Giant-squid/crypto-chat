@@ -12,7 +12,6 @@
 '''
 
 
-
 from socket import *
 import thread
 import threading
@@ -21,7 +20,7 @@ OK = 0
 BAD = 1
 CLOSE = 2
 
-VALID_CLIENT_REQUESTS = ['IAM', 'GETMSG', 'SENDMSG', 'CLOSE', 'USERLIST']
+VALID_CLIENT_REQUESTS = ['IAM', 'WHO',  'GETMSG', 'SENDMSG', 'CLOSE', 'USERLIST']
 
 '''
       ---MessageDB Class---
@@ -35,10 +34,11 @@ class MessageDB:
 	Paremeters: *None*
 	Return: *None*
 
-	Sets up database and lock fields
+	Sets up database, rsa public key storage, and lock fields
         '''
 	def __init__(self):
 		self.message_database = {}
+		self.rsa_public_keys = {}
                 self.lock = threading.Lock()
 
 
@@ -77,16 +77,18 @@ class MessageDB:
 	''' 
               ---add_user(...)---
         Parameters: name - user to add to system
+                    rsa_public_key - rsa public key associated with user
         Return: *None*
 	Throws: Exception if name already in system
 
         Adds an inbox for name in the database
         '''
-	def add_user(self, name):
+	def add_user(self, name, rsa_public_key):
 		if name in self.message_database:
 			raise Exception("Error, name already exist")
 		else:
 			self.message_database[name] = []
+			self.rsa_public_keys[name] = rsa_public_key 
 
 	''' 
               ---remove_user(...)---
@@ -119,6 +121,21 @@ class MessageDB:
 			user_list += '%s, ' % (key)
 
 		return user_list
+
+	'''
+         ---get_user_rsa(...)---
+        Parameters: user - username
+        Return: *None*  
+	Throws: Exception if user does not exist in system
+
+        Retrieves public rsa key of user
+	'''
+	def get_user_rsa(self, user): 
+		if user not in self.rsa_public_keys:
+			raise Exception("Error, name does not exist")
+		else:
+			return self.rsa_public_keys[name]
+
 
 
 ''' 
@@ -178,13 +195,13 @@ Registers client with database so database can maintain a
 message inbox for the client
 '''
 def register_client(conn, message_db):
-	user_input = conn.recv(1024)
+	user_input = conn.recv(2500)
 	
 	inputs = user_input.split()
 	
-	if len(inputs) == 2 and inputs[0] == 'IAM':
+	if len(inputs) == 3 and inputs[0] == 'IAM':
 		try:
-			message_db.add_user(inputs[1])
+			message_db.add_user(inputs[1], inputs[2])
 			send_response(conn, OK)
 		except Exception:
 			close_connection('*None*', conn, message_db)
@@ -239,6 +256,12 @@ def serve_request(user_request, username, conn, message_db):
 		try:
 			user_list = message_db.get_user_list()
 			send_response(conn, OK, user_list)
+		except:
+			send_response(conn, BAD)
+	elif user_request[0] == 'WHO':
+		try:
+			user_public_rsa = message_db.get_user_rsa(username)
+			send_response(conn, OK, user_public_rsa)
 		except:
 			send_response(conn, BAD)
 ''' 
