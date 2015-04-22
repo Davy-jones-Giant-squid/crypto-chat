@@ -55,10 +55,6 @@ class MessageDB:
 		if to_user not in self.message_database:
 			raise Exception("Error, name does not exist")
 		else:
- 			concat = ''
-			for string in message:
-				concat += string + ' '
- 
 			self.message_database[to_user].append(concat)
 
 	''' 
@@ -208,7 +204,7 @@ of strs
 '''
 def get_client_request(conn):
 	client_request = conn.recv(1024)
-	return  client_request.split()
+	return  client_request.split(' ', 2)
 
 
 ''' 
@@ -235,7 +231,7 @@ def serve_request(user_request, username, conn, message_db):
 		 
 	elif user_request[0] == 'SENDMSG':
 		try:
-			message_db.add_message(user_request[1], user_request[2:])
+			message_db.add_message(user_request[1], user_request[2])
 			send_response(conn, OK)
 		except:
 			send_response(conn, BAD)
