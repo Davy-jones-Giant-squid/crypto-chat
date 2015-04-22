@@ -4,7 +4,7 @@ from Crypto.PublicKey import RSA
 
 def RSA_key_generation():
   """
-  Generate RSA Keys and store them in mykey.pem
+  Generate RSA Keys 
   """
   key = RSA.generate(2048)
   private_key = key.exportKey('PEM')
