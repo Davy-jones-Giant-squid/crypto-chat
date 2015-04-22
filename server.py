@@ -55,7 +55,7 @@ class MessageDB:
 		if to_user not in self.message_database:
 			raise Exception("Error, name does not exist")
 		else:
-			self.message_database[to_user].append(concat)
+			self.message_database[to_user].append(message)
 
 	''' 
               ---get_message(...)---
