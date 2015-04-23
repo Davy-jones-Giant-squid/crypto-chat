@@ -6,10 +6,10 @@ from Crypto import Random
 from Crypto.Hash import MD5
 from cypari.gen import pari as pari
 
-
+#Population is used to generate random session key
 POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
 E = 65537
-TAG = "<spacing>" #Use to delineate the string sent
+TAG = "<spacing>" #Used to delimit the string sent
 
 def RSA_key_generation():
   """
@@ -19,8 +19,7 @@ def RSA_key_generation():
   private_key = key_obj.exportKey('PEM')
   public_key= key_obj.publickey().exportKey('PEM')
 
-  return key_obj, private_key, public_key
-  #print key.publickey().exportKey('PEM')
+  return private_key, public_key
   
 
 def establish_socket_connection(ip, port = 8080):
@@ -62,7 +61,7 @@ def claim_username(conn, username, rsa_public_key):
 def request_public_rsa(conn, whom):
   conn.send('WHO ' + whom);
   whom_rsa = conn.recv(2500) #requesting the RSA key
-  whom_rsa = to_whom_rsa[2:] #RSA public key of the person you're sending the message to
+  whom_rsa = whom_rsa[2:] #RSA public key of the person you're sending the message to
   return whom_rsa
 
 def commands_available():
@@ -72,7 +71,31 @@ def commands_available():
   print "  - 'online' or 'o': returns list of all online users"
   print "  - 'quit' or 'q': quits program"
   print "  - 'send' or 's': send message request"
- 
+
+
+def test_send_message(private_key):
+  message = "Hello there"
+  ####### encrypt message ###########
+
+  key = "".join(Random.random.sample(POPULATION, 16))
+
+  iv = Random.new().read(AES.block_size)
+  #print "iv ", iv
+  cipher = AES.new(key, AES.MODE_CFB, iv)
+  encrypted_message = cipher.encrypt(message)
+
+  h = MD5.new()
+  h.update(message)
+
+  print "Digest: ", h.hexdigest()
+  print h.digest()
+  H = (h.digest())**private_key #H is the digest raised to the private key
+  print H
+  
+
+  
+  #########################################
+
 
 def send_message(conn, private_key, username):
   print "-to whom(must be online)?: "
@@ -81,13 +104,15 @@ def send_message(conn, private_key, username):
   message = sys.stdin.readline().strip()
 
   ####### encrypt message ###########
-  key = '' 
-  key.join(Random.random.sample(POPULATION, 16)) #Generate a random key word
+  key = "".join(Random.random.sample(POPULATION, 16)) #Generate a random key word
 
   to_whom_rsa = request_public_rsa(conn, to_whom)
 
   #encrypt key with destination RSA
   encrypted_key = (key |mod| to_whom_rsa)**E
+
+  #print encrypted_key
+
   iv = Random.new().read(AES.block_size)
   cipher = AES.new(key, AES.MODE_CFB, iv)
   encrypted_message = cipher.encrypt(message)
@@ -190,8 +215,15 @@ def main():
   ip = sys.stdin.readline().strip()
   
   conn = establish_socket_connection(ip)
-  rsa_key, private, public = RSA_key_generation()
+  private, public = RSA_key_generation()
+
+  test_send_message(private)
+  
   claim_username(conn, username, public)
+
+  
+
+
   chat_service(conn, username, private)
    
 if __name__ == '__main__':
