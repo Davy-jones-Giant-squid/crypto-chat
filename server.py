@@ -15,6 +15,7 @@
 from socket import *
 import thread
 import threading
+import pdb
 
 OK = 0
 BAD = 1
@@ -134,7 +135,7 @@ class MessageDB:
 		if user not in self.rsa_public_keys:
 			raise Exception("Error, name does not exist")
 		else:
-			return self.rsa_public_keys[name]
+			return self.rsa_public_keys[user]
 
 
 
@@ -219,7 +220,7 @@ Retrieves a client request. Returns the client request as a delimited list
 of strs
 '''
 def get_client_request(conn):
-	client_request = conn.recv(1024)
+	client_request = conn.recv(5000)
 	return  client_request.split(' ', 2)
 
 
@@ -234,6 +235,7 @@ Return: *None*
 Processes client's request
 '''
 def serve_request(user_request, username, conn, message_db):
+	#pdb.set_trace()
 	if not user_request[0] in VALID_CLIENT_REQUESTS:
 		send_response(conn, BAD)
 
