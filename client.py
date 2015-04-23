@@ -84,7 +84,9 @@ def test_send_message(private_key, public_key):
   iv = Random.new().read(AES.block_size)
   #print "iv ", iv
   cipher = AES.new(key, AES.MODE_CFB, iv)
+  print "cipher: ", cipher
   encrypted_message = cipher.encrypt(message)
+  print "encrypted_message: ", encrypted_message
 
   h = MD5.new()
   h.update(message)
@@ -98,16 +100,18 @@ def test_send_message(private_key, public_key):
   H_raised_to_d = d.decrypt(H)
   #print integer_d
   #H = H**private_key #H is the digest raised to the private key
-  print "H**d: ",H_raised_to_d
+  #print "H**d: ",H_raised_to_d
 
   d = RSA.importKey(public_key)
- 
-  print "(H**d)**e: ", d.encrypt(H_raised_to_d, '121239') 
-  print "original hash: ", H
+  
+  #print "(H**d)**e: ", d.encrypt(H_raised_to_d, '121239')[0]
+  #print "original hash: ", H
+
   
 
   
   #########################################
+#def test_get_message():
 
 
 def send_message(conn, private_key, username):
@@ -116,29 +120,45 @@ def send_message(conn, private_key, username):
   print "-message: "
   message = sys.stdin.readline().strip()
 
+  #print "We're gonna send: ", message
+
   ####### encrypt message ###########
   key = "".join(Random.random.sample(POPULATION, 16)) #Generate a random key word
+  #print "Key: ", key
 
+  key = s2n(key)
   to_whom_rsa = request_public_rsa(conn, to_whom)
 
-  #encrypt key with destination RSA
-  encrypted_key = (key |mod| to_whom_rsa)**E
+  dest_n = s2n(to_whom_rsa) #turn n into integer
 
-  #print encrypted_key
+  #print "dest_n: ", dest_n
+
+  #encrypt key with destination RSA
+  encrypted_key = ((key |mod| dest_n)**E).lift()
+
+  #print "encrypted_key", encrypted_key
 
   iv = Random.new().read(AES.block_size)
+  #print "iv: ", iv
   cipher = AES.new(key, AES.MODE_CFB, iv)
+  print "cipher: ", cipher 
   encrypted_message = cipher.encrypt(message)
 
+  print "encrypted_message: ", encrypted_message
   #Create digest from MD5 hash of message
   h = MD5.new()
   h.update(message)
   H = s2n(h.hexdigest()) #convert into integers
-  #H is then raised to the private key (d)
 
+  print H
+
+  #H is then raised to the private key (d)
+  d = RSA.generate(2048)
+  d = RSA.importKey(private_key)
+  H_raised_to_d = d.decrypt(H)
 
   
-  encrypted_pack = TAG+H+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
+  encrypted_pack = TAG+H_raised_to_d+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
   #########################################
 
   conn.send("SENDMSG " + to_whom + ' ' + encrypted_pack)
@@ -163,7 +183,10 @@ def get_messages(conn, private_key):
       from_user = encrypted_message[4]
 
       #Decrypt session key
-      key = (extracted_encrypted_key)**private_key
+      d = RSA.importKey(private_key)
+      key = d.decrypt(extracted_encrypted_key)
+
+      print key
 
       #Decrypt message
       cipher = AES.new(key, AES.MODE_CFB, extracted_iv)
@@ -232,12 +255,9 @@ def main():
   conn = establish_socket_connection(ip)
   private, public = RSA_key_generation()
 
-  test_send_message(private, public)
+  #test_send_message(private, public)
   
   claim_username(conn, username, public)
-
-  
-
 
   chat_service(conn, username, private)
    
