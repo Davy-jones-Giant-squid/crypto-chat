@@ -53,10 +53,13 @@ class MessageDB:
         Adds message to database for to_user
         '''
 	def add_message(self, to_user, message):
+		self.lock.acquire(True)
 		if to_user not in self.message_database:
+			self.lock.release()
 			raise Exception("Error, name does not exist")
 		else:
 			self.message_database[to_user].append(message)
+		self.lock.release()
 
 	''' 
               ---get_message(...)---
@@ -68,13 +71,18 @@ class MessageDB:
         Retrieves oldest message for to_user
         '''
 	def get_message(self, to_user):
+		self.lock.acquire(True)
 		if to_user not in self.message_database:
+			self.lock.release()
 			raise Exception("Error, name does not exist")
 		elif not self.message_database[to_user]:
+			self.lock.release()
 			return Exception("Error, no message")
 		else:
-			return self.message_database[to_user].pop(0)
-
+			returnValue =  self.message_database[to_user].pop(0)
+			self.lock.release()
+			return returnValue
+		
 	''' 
               ---add_user(...)---
         Parameters: name - user to add to system
@@ -85,11 +93,14 @@ class MessageDB:
         Adds an inbox for name in the database
         '''
 	def add_user(self, name, rsa_public_key):
+		self.lock.acquire(True)
 		if name in self.message_database:
+			self.lock.release()
 			raise Exception("Error, name already exist")
 		else:
 			self.message_database[name] = []
 			self.rsa_public_keys[name] = rsa_public_key
+			self.lock.release()
 
 	''' 
               ---remove_user(...)---
@@ -100,10 +111,13 @@ class MessageDB:
         Removes name inbox from database
         '''
 	def remove_user(self, name):
+		self.lock.acquire(True)
 		if name not in self.message_database:
+			self.lock.release()
 			raise Exception("Error, name does not exist")
 		else:
 			del self.message_database[name]
+			self.lock.release()
 
 	''' 
               ---get_user_list(...)---
@@ -113,14 +127,17 @@ class MessageDB:
         Retreives a str of all active users
         '''
 	def get_user_list(self):
+		self.lock.acquire(True)
 		user_list = ''
 		#empty check, should never run
 		if not self.message_database:
+			self.lock.release()
 			return '*None*'
 
 		for key in self.message_database:
 			user_list += '%s, ' % (key)
 
+		self.lock.release()
 		return user_list
 
 	'''
@@ -131,12 +148,15 @@ class MessageDB:
 
         Retrieves public rsa key of user
 	'''
-	def get_user_rsa(self, user): 
+	def get_user_rsa(self, user):
+		self.lock.acquire(True) 
 		if user not in self.rsa_public_keys:
+			self.lock.release()
 			raise Exception("Error, name does not exist")
 		else:
-			return self.rsa_public_keys[user]
-
+			returnValue =  self.rsa_public_keys[user]
+			self.lock.release()
+			return returnValue
 
 
 ''' 
