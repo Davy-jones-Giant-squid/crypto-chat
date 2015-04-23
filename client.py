@@ -140,7 +140,13 @@ def send_message(conn, private_key, username):
 
   iv = Random.new().read(AES.block_size)
   #print "iv: ", iv
+
+  """
+  Giving a communication error HERE
+  """
   cipher = AES.new(key, AES.MODE_CFB, iv)
+
+
   print "cipher: ", cipher 
   encrypted_message = cipher.encrypt(message)
 
