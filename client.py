@@ -5,6 +5,8 @@ from Crypto.Cipher import AES
 from Crypto import Random
 from Crypto.Hash import MD5
 from cypari.gen import pari as pari
+from EZ425ES import *
+
 
 #Population is used to generate random session key
 POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
@@ -73,7 +75,7 @@ def commands_available():
   print "  - 'send' or 's': send message request"
 
 
-def test_send_message(private_key):
+def test_send_message(private_key, public_key):
   message = "Hello there"
   ####### encrypt message ###########
 
@@ -87,10 +89,21 @@ def test_send_message(private_key):
   h = MD5.new()
   h.update(message)
 
-  print "Digest: ", h.hexdigest()
-  print h.digest()
-  H = (h.digest())**private_key #H is the digest raised to the private key
-  print H
+  #print "Digest: ", h.hexdigest()
+  
+  #convert digest into integers
+  H = s2n(h.hexdigest())
+  d = RSA.generate(2048)
+  d = RSA.importKey(private_key)
+  H_raised_to_d = d.decrypt(H)
+  #print integer_d
+  #H = H**private_key #H is the digest raised to the private key
+  print "H**d: ",H_raised_to_d
+
+  d.importKey(public_key)
+ 
+  print "(H**d)**e: ", d.encrypt(H_raised_to_d) 
+  print "original hash: ", H
   
 
   
@@ -120,7 +133,9 @@ def send_message(conn, private_key, username):
   #Create digest from MD5 hash of message
   h = MD5.new()
   h.update(message)
-  H = (h.hexdigest())**private_key #H is the digest raised to the private key
+  H = s2n(h.hexdigest()) #convert into integers
+  #H is then raised to the private key (d)
+
 
   
   encrypted_pack = TAG+H+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
@@ -217,7 +232,7 @@ def main():
   conn = establish_socket_connection(ip)
   private, public = RSA_key_generation()
 
-  test_send_message(private)
+  test_send_message(private, public)
   
   claim_username(conn, username, public)
 
