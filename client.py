@@ -100,9 +100,9 @@ def test_send_message(private_key, public_key):
   #H = H**private_key #H is the digest raised to the private key
   print "H**d: ",H_raised_to_d
 
-  d.importKey(public_key)
+  d = RSA.importKey(public_key)
  
-  print "(H**d)**e: ", d.encrypt(H_raised_to_d) 
+  print "(H**d)**e: ", d.encrypt(H_raised_to_d, '121239') 
   print "original hash: ", H
   
 
