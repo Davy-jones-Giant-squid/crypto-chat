@@ -3,6 +3,9 @@ import sys
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import AES
 from Crypto import Random
+from Crypto.Hash import MD5
+from cypari.gen import pari as pari
+
 
 POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
 E = 65537
@@ -65,7 +68,7 @@ def commands_available():
   print "  - 'send' or 's': send message request"
  
 
-def send_message(conn, public_key):
+def send_message(conn, private_key):
   print "-to whom(must be online)?: "
   to_whom = sys.stdin.readline().strip().lower() 
   print "-message: "
@@ -74,19 +77,30 @@ def send_message(conn, public_key):
   ####### encrypt message ###########
   key = '' 
   key.join(Random.random.sample(POPULATION, 16)) #Generate a random key word
-  public_key(key, 0) #encrypt with rsa
 
   conn.send('WHO ' + to_whom);
   to_whom_rsa = conn.recv(2500) #requesting the RSA key
   to_whom_rsa = to_whom_rsa[:2] #RSA public key of the person you're sending the message to
 
+  #encrypt key with destination RSA
+  encrypted_key = (key |mod| to_whom_rsa)**E
+  encrypted_key_len = len(encrypted_key)
   iv = Random.new().read(AES.block_size)
+  iv_len = len(iv)
   cipher = AES.new(key, AES.MODE_CFB, iv)
-  encryptedMsg = iv + cipher.encrypt(msg)
+  encrypted_message = cipher.encrypt(message)
+  encrypted_message_len = len(encrypted_message)
+  #Create digest from MD5 hash of message
+  h = MD5.new()
+  h.update(message)
+  H = (h.hexdigest())**private_key #H is the digest raised to the private key
+
+  encrypted_pack = [encrypted_key, iv, encrypted_message, H]
+  
 
   #########################################
 
-  conn.send("SENDMSG " + to_whom + ' ' + encryptedMsg)
+  conn.send("SENDMSG " + to_whom + ' ' + encrypted_pack)
 
   return_message = conn.recv(1024).split()[0]
   if return_message == 'OK':
@@ -100,15 +114,16 @@ def get_messages(conn):
     msg = conn.recv(1024)
     if not '*None*' in msg:
 
-      ####### Decrypt message ############
+    ####### Decrypt message ############
 
-      #print msg[2:], '\n'
+    #
+    print msg[2:], '\n'
 
-      ####################################
+    ####################################
     else:
       break
 
-def chat_service(conn, username):
+def chat_service(conn, username, private_key):
   print "\n*Chat Service Active*\n"
   commands_available()
 
@@ -119,7 +134,7 @@ def chat_service(conn, username):
       if msg == 'help' or msg == 'h':
         commands_available()
       elif msg == 'send' or msg == 's':
-        send_message(conn)
+        send_message(conn, private_key)
       elif msg == 'get' or msg == 'g':
         get_messages(conn)
       elif msg == 'online' or msg == 'o':
@@ -155,7 +170,7 @@ def main():
   conn = establish_socket_connection(ip)
   rsa_key, private, public = RSA_key_generation()
   claim_username(conn, username, public)
-  chat_service(conn, username)
+  chat_service(conn, username, private)
    
 if __name__ == '__main__':
   main()
