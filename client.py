@@ -1,16 +1,21 @@
 import socket
 import sys
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
+from Crypto import Random
 
-def RSA_key_generation():
+POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
+E = 65537
+
+def RSA_key_generation(conn):
   """
   Generate RSA Keys 
   """
-  key = RSA.generate(2048)
+  key_obj = RSA.generate(2048)
   private_key = key.exportKey('PEM')
   public_key= key.publickey().exportKey('PEM')
 
-  return private_key, public_key
+  return key_obj, private_key, public_key
   #print key.publickey().exportKey('PEM')
   
 
@@ -31,10 +36,10 @@ def establish_socket_connection(ip, port = 8080):
   return s
 
 
-def claim_username(conn, username):
+def claim_username(conn, username, rsa_public_key):
   try:
     print 'Claiming Username with Server......',
-    conn.send('IAM ' + username)
+    conn.send('IAM ' + username + " " + rsa_public_key)
     msg = conn.recv(1024)
     if msg.split()[0] == 'OK':
       print '*Done*'
@@ -60,13 +65,28 @@ def commands_available():
   print "  - 'send' or 's': send message request"
  
 
-def send_message(conn):
+def send_message(conn, public_key):
   print "-to whom(must be online)?: "
   to_whom = sys.stdin.readline().strip().lower() 
   print "-message: "
   message = sys.stdin.readline().strip()
 
-  conn.send("SENDMSG " + to_whom + ' ' + message)
+  ####### encrypt message ###########
+  key = '' 
+  key.join(Random.random.sample(POPULATION, 16)) #Generate a random key word
+  public_key(key, 0) #encrypt with rsa
+
+  conn.send('WHO ' + to_whom);
+  to_whom_rsa = conn.recv(2500) #requesting the RSA key
+  to_whom_rsa = to_whom_rsa[:2] #RSA public key of the person you're sending the message to
+
+  iv = Random.new().read(AES.block_size)
+  cipher = AES.new(key, AES.MODE_CFB, iv)
+  encryptedMsg = iv + cipher.encrypt(msg)
+
+  #########################################
+
+  conn.send("SENDMSG " + to_whom + ' ' + encryptedMsg)
 
   return_message = conn.recv(1024).split()[0]
   if return_message == 'OK':
@@ -79,7 +99,12 @@ def get_messages(conn):
     conn.send("GETMSG")
     msg = conn.recv(1024)
     if not '*None*' in msg:
-      print msg[2:], '\n'
+
+      ####### Decrypt message ############
+
+      #print msg[2:], '\n'
+
+      ####################################
     else:
       break
 
@@ -128,8 +153,8 @@ def main():
   ip = sys.stdin.readline().strip()
   
   conn = establish_socket_connection(ip)
-  private, public = RSA_key_generation()
-  claim_username(conn, username)
+  rsa_key, private, public = RSA_key_generation()
+  claim_username(conn, username, public)
   chat_service(conn, username)
    
 if __name__ == '__main__':
