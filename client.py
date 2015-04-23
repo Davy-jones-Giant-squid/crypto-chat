@@ -16,8 +16,8 @@ def RSA_key_generation():
   Generate RSA Keys 
   """
   key_obj = RSA.generate(2048)
-  private_key = key.exportKey('PEM')
-  public_key= key.publickey().exportKey('PEM')
+  private_key = key_obj.exportKey('PEM')
+  public_key= key_obj.publickey().exportKey('PEM')
 
   return key_obj, private_key, public_key
   #print key.publickey().exportKey('PEM')
@@ -99,8 +99,6 @@ def send_message(conn, private_key, username):
 
   
   encrypted_pack = TAG+H+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
-  
-
   #########################################
 
   conn.send("SENDMSG " + to_whom + ' ' + encrypted_pack)
@@ -135,7 +133,7 @@ def get_messages(conn, private_key):
       h_prime = MD5.new()
       h_prime.update(decrypted_message)
 
-      #Verify the authenticity au the digest H
+      #Verify the authenticity of the digest H
       from_whom = request_public_rsa(conn, from_user)
       verify_H = (extracted_H)**from_whom
       if verify_H == h_prime.hexdigest():
