@@ -9,8 +9,9 @@ from cypari.gen import pari as pari
 
 POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
 E = 65537
+TAG = "<spacing>" #Use to delineate the string sent
 
-def RSA_key_generation(conn):
+def RSA_key_generation():
   """
   Generate RSA Keys 
   """
@@ -58,6 +59,11 @@ def claim_username(conn, username, rsa_public_key):
     print '*Communcation Error*'
     sys.exit(-1)
 
+def request_public_rsa(conn, whom):
+  conn.send('WHO ' + whom);
+  whom_rsa = conn.recv(2500) #requesting the RSA key
+  whom_rsa = to_whom_rsa[2:] #RSA public key of the person you're sending the message to
+  return whom_rsa
 
 def commands_available():
   print 'Commands Available: '
@@ -68,7 +74,7 @@ def commands_available():
   print "  - 'send' or 's': send message request"
  
 
-def send_message(conn, private_key):
+def send_message(conn, private_key, username):
   print "-to whom(must be online)?: "
   to_whom = sys.stdin.readline().strip().lower() 
   print "-message: "
@@ -78,24 +84,21 @@ def send_message(conn, private_key):
   key = '' 
   key.join(Random.random.sample(POPULATION, 16)) #Generate a random key word
 
-  conn.send('WHO ' + to_whom);
-  to_whom_rsa = conn.recv(2500) #requesting the RSA key
-  to_whom_rsa = to_whom_rsa[:2] #RSA public key of the person you're sending the message to
+  to_whom_rsa = request_public_rsa(conn, to_whom)
 
   #encrypt key with destination RSA
   encrypted_key = (key |mod| to_whom_rsa)**E
-  encrypted_key_len = len(encrypted_key)
   iv = Random.new().read(AES.block_size)
-  iv_len = len(iv)
   cipher = AES.new(key, AES.MODE_CFB, iv)
   encrypted_message = cipher.encrypt(message)
-  encrypted_message_len = len(encrypted_message)
+
   #Create digest from MD5 hash of message
   h = MD5.new()
   h.update(message)
   H = (h.hexdigest())**private_key #H is the digest raised to the private key
 
-  encrypted_pack = [encrypted_key, iv, encrypted_message, H]
+  
+  encrypted_pack = TAG+H+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
   
 
   #########################################
@@ -108,18 +111,39 @@ def send_message(conn, private_key):
   else:
     print 'Failed... Make sure recipient is online and spelling is correct'
 
-def get_messages(conn):
+def get_messages(conn, private_key):
    while True:
     conn.send("GETMSG")
     msg = conn.recv(1024)
     if not '*None*' in msg:
+      ####### Decrypt message ###########
+      encrypted_message = msg[2:].split(TAG)
+      extracted_H = encrypted_message[0]
+      extracted_encrypted_key = encrypted_message[1]
+      extracted_iv = encrypted_message[2]
+      extracted_encrypted_message = encrypted_message[3]
+      from_user = encrypted_message[4]
 
-    ####### Decrypt message ############
+      #Decrypt session key
+      key = (extracted_encrypted_key)**private_key
 
-    #
-    print msg[2:], '\n'
+      #Decrypt message
+      cipher = AES.new(key, AES.MODE_CFB, extracted_iv)
+      decrypted_message = cipher.decrypt(extracted_encrypted_message)
 
-    ####################################
+      #Hash the message
+      h_prime = MD5.new()
+      h_prime.update(decrypted_message)
+
+      #Verify the authenticity au the digest H
+      from_whom = request_public_rsa(conn, from_user)
+      verify_H = (extracted_H)**from_whom
+      if verify_H == h_prime.hexdigest():
+        print decrypted_message, "\n"
+      else:
+        print "Authentication failure"
+
+      ####################################
     else:
       break
 
@@ -134,9 +158,9 @@ def chat_service(conn, username, private_key):
       if msg == 'help' or msg == 'h':
         commands_available()
       elif msg == 'send' or msg == 's':
-        send_message(conn, private_key)
+        send_message(conn, private_key, username)
       elif msg == 'get' or msg == 'g':
-        get_messages(conn)
+        get_messages(conn, private_key)
       elif msg == 'online' or msg == 'o':
         continue #temp
         #get_whoose_online()
