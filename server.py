@@ -88,7 +88,7 @@ class MessageDB:
 			raise Exception("Error, name already exist")
 		else:
 			self.message_database[name] = []
-			self.rsa_public_keys[name] = rsa_public_key 
+			self.rsa_public_keys[name] = rsa_public_key
 
 	''' 
               ---remove_user(...)---
@@ -197,8 +197,7 @@ message inbox for the client
 def register_client(conn, message_db):
 	user_input = conn.recv(2500)
 	
-	inputs = user_input.split()
-	
+	inputs = user_input.split(' ', 2)	
 	if len(inputs) == 3 and inputs[0] == 'IAM':
 		try:
 			message_db.add_user(inputs[1], inputs[2])
