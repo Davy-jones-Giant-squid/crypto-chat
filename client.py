@@ -126,7 +126,7 @@ def send_message(conn, private_key, username):
   key = "".join(Random.random.sample(POPULATION, 16)) #Generate a random key word
   #print "Key: ", key
 
-  key = s2n(key)
+  key_num = s2n(key)
   to_whom_rsa = request_public_rsa(conn, to_whom)
 
   dest_n = s2n(to_whom_rsa) #turn n into integer
@@ -134,7 +134,7 @@ def send_message(conn, private_key, username):
   #print "dest_n: ", dest_n
 
   #encrypt key with destination RSA
-  encrypted_key = ((key |mod| dest_n)**E).lift()
+  encrypted_key = ((key_num |mod| dest_n)**E).lift()
 
   #print "encrypted_key", encrypted_key
 
@@ -147,16 +147,16 @@ def send_message(conn, private_key, username):
   cipher = AES.new(key, AES.MODE_CFB, iv)
 
 
-  print "cipher: ", cipher 
+  #print "cipher: ", cipher 
   encrypted_message = cipher.encrypt(message)
 
-  print "encrypted_message: ", encrypted_message
+  #print "encrypted_message: ", encrypted_message
   #Create digest from MD5 hash of message
   h = MD5.new()
   h.update(message)
   H = s2n(h.hexdigest()) #convert into integers
 
-  print H
+  print "H: ",H
 
   #H is then raised to the private key (d)
   d = RSA.generate(2048)
