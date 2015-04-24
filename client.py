@@ -141,9 +141,6 @@ def send_message(conn, private_key, username):
   iv = Random.new().read(AES.block_size)
   #print "iv: ", iv
 
-  """
-  Giving a communication error HERE
-  """
   cipher = AES.new(key, AES.MODE_CFB, iv)
 
 
@@ -156,17 +153,22 @@ def send_message(conn, private_key, username):
   h.update(message)
   H = s2n(h.hexdigest()) #convert into integers
 
-  print "H: ",H
+  #print "H: ",H
 
   #H is then raised to the private key (d)
   d = RSA.generate(2048)
   d = RSA.importKey(private_key)
   H_raised_to_d = d.decrypt(H)
 
+  #print "H_raised_to_d: ", H_raised_to_d
   
-  encrypted_pack = TAG+H_raised_to_d+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
+  """
+  COMMUNICATON Error HERE
+  """
+  encrypted_pack = TAG+str(H_raised_to_d)+TAG+str(encrypted_key)+TAG+iv+TAG+encrypted_message+TAG+username+TAG
   #########################################
 
+  #print "encrypted_pack: ", encrypted_pack
   conn.send("SENDMSG " + to_whom + ' ' + encrypted_pack)
 
   return_message = conn.recv(1024).split()[0]
@@ -182,11 +184,13 @@ def get_messages(conn, private_key):
     if not '*None*' in msg:
       ####### Decrypt message ###########
       encrypted_message = msg[2:].split(TAG)
-      extracted_H = encrypted_message[0]
-      extracted_encrypted_key = encrypted_message[1]
+      extracted_H = int(encrypted_message[0])
+      extracted_encrypted_key = int(encrypted_message[1])
       extracted_iv = encrypted_message[2]
       extracted_encrypted_message = encrypted_message[3]
       from_user = encrypted_message[4]
+
+      print "extracted_H: ", extracted_H
 
       #Decrypt session key
       d = RSA.importKey(private_key)
