@@ -134,7 +134,6 @@ def send_message(conn, private_key, username):
 
   #encrypt key with destination RSA
   encrypted_key = str(n.encrypt(key_num, None))
-
   #print "encrypted_key", encrypted_key
 
   iv = Random.new().read(AES.block_size)
@@ -155,13 +154,12 @@ def send_message(conn, private_key, username):
   #print "H: ",H
 
   #H is then raised to the private key (d)
-  d = RSA.generate(2048)
   d = RSA.importKey(private_key)
   H_raised_to_d = d.decrypt(H)
 
   #print "H_raised_to_d: ", H_raised_to_d
   
-  encrypted_pack = TAG+str(H_raised_to_d)+TAG+str(encrypted_key)+TAG+iv+TAG+encrypted_message+TAG+username+TAG
+  encrypted_pack = TAG+str(H_raised_to_d)+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
   #########################################
 
   #print "encrypted_pack: ", encrypted_pack
