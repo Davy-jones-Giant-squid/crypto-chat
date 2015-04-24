@@ -155,10 +155,11 @@ def send_message(conn, private_key, username):
 def get_messages(conn, private_key):
   while True:
     conn.send("GETMSG")
+    #pdb.set_trace()
     msg = conn.recv(4000)
     if not '*None*' in msg:
       ####### Decrypt message ###########
-      encrypted_message = msg[2:].split(TAG)
+      encrypted_message = msg[3:].split(TAG)
       extracted_H = int(encrypted_message[0])
       extracted_encrypted_key = int(encrypted_message[1])
       extracted_iv = encrypted_message[2]

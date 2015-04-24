@@ -54,6 +54,7 @@ class MessageDB:
         '''
 	def add_message(self, to_user, message):
 		self.lock.acquire(True)
+		#print message
 		if to_user not in self.message_database:
 			self.lock.release()
 			raise Exception("Error, name does not exist")
@@ -281,7 +282,7 @@ def serve_request(user_request, username, conn, message_db):
 			send_response(conn, BAD)
 	elif user_request[0] == 'WHO':
 		try:
-			user_public_rsa = message_db.get_user_rsa(username)
+			user_public_rsa = message_db.get_user_rsa(user_request[1])
 			send_response(conn, OK, user_public_rsa)
 		except:
 			send_response(conn, BAD)
