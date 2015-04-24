@@ -111,7 +111,7 @@ def test_send_message(private_key, public_key):
 
   
   #########################################
-#def test_get_message():
+
 
 
 def send_message(conn, private_key, username):
@@ -120,49 +120,30 @@ def send_message(conn, private_key, username):
   print "-message: "
   message = sys.stdin.readline().strip()
 
-  #print "We're gonna send: ", message
-
   ####### encrypt message ###########
   key = "".join(Random.random.sample(POPULATION, 16)) #Generate a random key word
-  #print "Key: ", key
-
   key_num = s2n(key)
   to_whom_rsa = request_public_rsa(conn, to_whom)
   n = RSA.importKey(to_whom_rsa)
 
-  #print "dest_n: ", dest_n
-
   #encrypt key with destination RSA
-  encrypted_key = str(n.encrypt(key_num, None))
-  #print "encrypted_key", encrypted_key
-
+  encrypted_key = (n.encrypt(key_num, None))[0]
   iv = Random.new().read(AES.block_size)
-  #print "iv: ", iv
-
   cipher = AES.new(key, AES.MODE_CFB, iv)
-
-
-  #print "cipher: ", cipher 
   encrypted_message = cipher.encrypt(message)
 
-  #print "encrypted_message: ", encrypted_message
   #Create digest from MD5 hash of message
   h = MD5.new()
   h.update(message)
   H = s2n(h.hexdigest()) #convert into integers
 
-  #print "H: ",H
-
   #H is then raised to the private key (d)
   d = RSA.importKey(private_key)
   H_raised_to_d = d.decrypt(H)
-
-  #print "H_raised_to_d: ", H_raised_to_d
   
-  encrypted_pack = TAG+str(H_raised_to_d)+TAG+encrypted_key+TAG+iv+TAG+encrypted_message+TAG+username+TAG
+  encrypted_pack = str(H_raised_to_d)+TAG+str(encrypted_key)+TAG+iv+TAG+encrypted_message+TAG+username
   #########################################
 
-  #print "encrypted_pack: ", encrypted_pack
   conn.send("SENDMSG " + to_whom + ' ' + encrypted_pack)
 
   return_message = conn.recv(1024).split()[0]
@@ -172,10 +153,9 @@ def send_message(conn, private_key, username):
     print 'Failed... Make sure recipient is online and spelling is correct'
 
 def get_messages(conn, private_key):
-  print "CHECKPOINT 1"
   while True:
     conn.send("GETMSG")
-    msg = conn.recv(1024)
+    msg = conn.recv(4000)
     if not '*None*' in msg:
       ####### Decrypt message ###########
       encrypted_message = msg[2:].split(TAG)
@@ -185,27 +165,31 @@ def get_messages(conn, private_key):
       extracted_encrypted_message = encrypted_message[3]
       from_user = encrypted_message[4]
 
-      print "extracted_H: ", extracted_H
-
       #Decrypt session key
       d = RSA.importKey(private_key)
-      key = d.decrypt(extracted_encrypted_key)
+      key_num = d.decrypt(extracted_encrypted_key)
 
-      print key
+      key_str = n2s(key_num)
 
       #Decrypt message
-      cipher = AES.new(key, AES.MODE_CFB, extracted_iv)
+      cipher = AES.new(key_str, AES.MODE_CFB, extracted_iv)
       decrypted_message = cipher.decrypt(extracted_encrypted_message)
 
       #Hash the message
       h_prime = MD5.new()
-      h_prime.update(decrypted_message)
+      h_prime.update(decrypted_message) #the original message is hashed
 
       #Verify the authenticity of the digest H
-      from_whom = request_public_rsa(conn, from_user)
-      verify_H = (extracted_H)**from_whom
+      from_whom_rsa = request_public_rsa(conn, from_user) #Get sender's public key
+      n = RSA.importKey(from_whom_rsa)
+      H_prime = (n.encrypt(extracted_H, None))[0]
+      verify_H = n2s(H_prime)
+
+      #print "h_prime digest: ", h_prime.hexdigest()
+      #print "verify_H: ", verify_H
+
       if verify_H == h_prime.hexdigest():
-        print decrypted_message, "\n"
+        print "from ", from_user, ": ", decrypted_message
       else:
         print "Authentication failure"
 
