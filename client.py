@@ -13,6 +13,11 @@ POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
 E = 65537
 TAG = "<spacing>" #Used to delimit the string sent
 
+def who_is_online(conn):
+  conn.send('USERLIST')
+  userlist = conn.recv(2000)
+  print ' userlist[3:]'
+ 
 def RSA_key_generation():
   """
   Generate RSA Keys 
@@ -213,8 +218,7 @@ def chat_service(conn, username, private_key):
       elif msg == 'get' or msg == 'g':
         get_messages(conn, private_key)
       elif msg == 'online' or msg == 'o':
-        continue #temp
-        #get_whoose_online()
+        who_is_online(conn)
       elif msg == 'quit' or msg == 'q':
         conn.close()
         sys.exit()
