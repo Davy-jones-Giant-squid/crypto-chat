@@ -128,7 +128,6 @@ def send_message(conn, private_key, username):
 
   key_num = s2n(key)
   to_whom_rsa = request_public_rsa(conn, to_whom)
-  pdb.set_trace()
   n = RSA.importKey(to_whom_rsa)
 
   #print "dest_n: ", dest_n
