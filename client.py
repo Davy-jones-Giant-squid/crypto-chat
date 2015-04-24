@@ -6,7 +6,7 @@ from Crypto import Random
 from Crypto.Hash import MD5
 from cypari.gen import pari as pari
 from EZ425ES import *
-
+import pdb
 
 #Population is used to generate random session key
 POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
@@ -63,7 +63,7 @@ def claim_username(conn, username, rsa_public_key):
 def request_public_rsa(conn, whom):
   conn.send('WHO ' + whom);
   whom_rsa = conn.recv(2500) #requesting the RSA key
-  whom_rsa = whom_rsa[2:] #RSA public key of the person you're sending the message to
+  whom_rsa = whom_rsa[3:] #RSA public key of the person you're sending the message to
   return whom_rsa
 
 def commands_available():
@@ -128,13 +128,13 @@ def send_message(conn, private_key, username):
 
   key_num = s2n(key)
   to_whom_rsa = request_public_rsa(conn, to_whom)
-
-  dest_n = s2n(to_whom_rsa) #turn n into integer
+  pdb.set_trace()
+  n = RSA.importKey(to_whom_rsa)
 
   #print "dest_n: ", dest_n
 
   #encrypt key with destination RSA
-  encrypted_key = ((key_num |mod| dest_n)**E).lift()
+  encrypted_key = str(n.encrypt(key_num, None))
 
   #print "encrypted_key", encrypted_key
 
