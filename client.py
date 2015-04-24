@@ -162,9 +162,6 @@ def send_message(conn, private_key, username):
 
   #print "H_raised_to_d: ", H_raised_to_d
   
-  """
-  COMMUNICATON Error HERE
-  """
   encrypted_pack = TAG+str(H_raised_to_d)+TAG+str(encrypted_key)+TAG+iv+TAG+encrypted_message+TAG+username+TAG
   #########################################
 
@@ -178,7 +175,8 @@ def send_message(conn, private_key, username):
     print 'Failed... Make sure recipient is online and spelling is correct'
 
 def get_messages(conn, private_key):
-   while True:
+  print "CHECKPOINT 1"
+  while True:
     conn.send("GETMSG")
     msg = conn.recv(1024)
     if not '*None*' in msg:
@@ -246,7 +244,7 @@ def chat_service(conn, username, private_key):
     print 'Error code: ' + str(msg[0]) + ' . Error message: ' + msg[1]
     sys.exit(-1)
   except Exception:
-    print '*Communcation Error*'
+    print '*Communication Error*'
     sys.exit(-1)
 
 def main():
