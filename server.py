@@ -118,6 +118,7 @@ class MessageDB:
 			raise Exception("Error, name does not exist")
 		else:
 			del self.message_database[name]
+			del self.rsa_public_keys[name]
 			self.lock.release()
 
 	''' 
@@ -202,8 +203,12 @@ def close_connection(username, conn, message_db):
 			message_db.remove_user(username)
 		except Exception:
 			pass
-	send_response(conn, CLOSE)
-	conn.close()
+	try:
+		send_response(conn, CLOSE)
+		conn.close()
+	except:
+		pass
+
 	thread.exit()
 
 
@@ -296,14 +301,17 @@ Jumping off point for a thread once a client connection is established
 '''
 def client_thread(conn, message_db):
 	clientname = register_client(conn, message_db)
-	while True:
-		client_request = get_client_request(conn)
-		if len(client_request) == 0:
-			break
-		else:
-			serve_request(client_request, clientname, conn, message_db)
-
-	close_connection(clientname, conn, message_db)
+	try:
+		while True:
+			client_request = get_client_request(conn)
+			if len(client_request) == 0:
+				break
+			else:
+				serve_request(client_request, clientname, conn, message_db)
+	except:
+		pass
+	finally:
+		close_connection(clientname, conn, message_db)
 
 
 #instantiate MessageDB
