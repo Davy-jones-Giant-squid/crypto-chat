@@ -16,7 +16,7 @@ TAG = "<spacing>" #Used to delimit the string sent
 def who_is_online(conn):
   conn.send('USERLIST')
   userlist = conn.recv(2000)
-  print ' userlist[3:]'
+  print userlist[3:]
  
 def RSA_key_generation():
   """
