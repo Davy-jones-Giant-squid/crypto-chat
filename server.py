@@ -6,9 +6,7 @@
 
  This is server code portion of project.
 
- ToDo: -Add 'CLOSE' client request functionality
-       -Add 'USERLIST' client request functionality
-       -All Security Features (PGP, etc.)
+ ToDo: *Done*
 '''
 
 

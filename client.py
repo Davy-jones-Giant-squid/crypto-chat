@@ -1,3 +1,17 @@
+'''
+------------------- client.py ----------------------
+ By: Chris Schultz, Sabine Ye
+
+ MCS 425 Project - Secure Communications System
+
+ This is client code portion of project.
+
+ ToDo: *Done*
+'''
+
+
+
+
 import socket
 import sys
 from Crypto.PublicKey import RSA
