@@ -12,6 +12,7 @@ import pdb
 POPULATION = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890'
 E = 65537
 TAG = "<spacing>" #Used to delimit the string sent
+FLAG = 0
 
 def who_is_online(conn):
   conn.send('USERLIST')
@@ -137,6 +138,12 @@ def send_message(conn, private_key, username):
   cipher = AES.new(key, AES.MODE_CFB, iv)
   encrypted_message = cipher.encrypt(message)
 
+  if FLAG == 1:
+    print "Generating random key: ", key
+    print "Encrypted message: ", encrypted_message 
+    print "Encrypt key with recipient's RSA public key: ", key_num
+    print ""
+
   #Create digest from MD5 hash of message
   h = MD5.new()
   h.update(message)
@@ -145,9 +152,17 @@ def send_message(conn, private_key, username):
   #H is then raised to the private key (d)
   d = RSA.importKey(private_key)
   H_raised_to_d = d.decrypt(H)
+
+
   
   encrypted_pack = str(H_raised_to_d)+TAG+str(encrypted_key)+TAG+iv+TAG+encrypted_message+TAG+username
   #########################################
+
+  if FLAG == 1:
+    print "Encrypted information sent (signed digest, encrypted session key, iv, encrypted message, username):"
+    print encrypted_pack
+    print ""
+
 
   conn.send("SENDMSG " + to_whom + ' ' + encrypted_pack)
 
@@ -171,15 +186,28 @@ def get_messages(conn, private_key):
       extracted_encrypted_message = encrypted_message[3]
       from_user = encrypted_message[4]
 
+      if FLAG == 1:
+        print "Content of the message before decryption [signed digest, encrypted session key, iv, encrypted message, username]:"
+        print encrypted_message
+        print ""
+
       #Decrypt session key
       d = RSA.importKey(private_key)
       key_num = d.decrypt(extracted_encrypted_key)
 
       key_str = n2s(key_num)
 
+      if FLAG == 1:
+        print "Decrypted session key: ", key_str
+        print ""
+
       #Decrypt message
       cipher = AES.new(key_str, AES.MODE_CFB, extracted_iv)
       decrypted_message = cipher.decrypt(extracted_encrypted_message)
+
+      if FLAG == 1:
+        print "Decrypted message: ", decrypted_message
+        print ""
 
       #Hash the message
       h_prime = MD5.new()
@@ -191,8 +219,12 @@ def get_messages(conn, private_key):
       H_prime = (n.encrypt(extracted_H, None))[0]
       verify_H = n2s(H_prime)
 
-      #print "h_prime digest: ", h_prime.hexdigest()
-      #print "verify_H: ", verify_H
+      if FLAG == 1:
+        print "Verifying the authenticity of message: "
+        print "Signed digest raised to e: ", verify_H
+        print "Our own digest: ", h_prime.hexdigest()
+        print ""
+
 
       if verify_H == h_prime.hexdigest():
         print "from ", from_user, ": ", decrypted_message
@@ -245,7 +277,13 @@ def main():
   username = sys.stdin.readline().strip()
   print 'Enter server ip: '
   ip = sys.stdin.readline().strip()
-  
+  print 'Enter in debug mode? (y/n):'
+  flag = sys.stdin.readline().strip()
+
+  global FLAG
+  if flag == 'y':
+    FLAG = 1
+
   conn = establish_socket_connection(ip)
   private, public = RSA_key_generation()
 
