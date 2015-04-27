@@ -16,6 +16,8 @@ from socket import *
 import thread
 import threading
 import pdb
+import sys
+import os
 
 OK = 0
 BAD = 1
@@ -291,6 +293,8 @@ def serve_request(user_request, username, conn, message_db):
 			send_response(conn, OK, user_public_rsa)
 		except:
 			send_response(conn, BAD)
+
+
 ''' 
       ---client_thread(...)---
 Parameters: conn - connection socket to client
@@ -314,21 +318,95 @@ def client_thread(conn, message_db):
 		close_connection(clientname, conn, message_db)
 
 
-#instantiate MessageDB
-message_db = MessageDB()
+''' 
+      ---commands_available(...)---
+Parameters: *None*
+Return: *None*  
+
+Displays commands available to user 
+'''
+def commands_available():
+	print 'Commands Available: '
+	print "  - 'get' or 'g' <user>: show messages stored on server for user "
+  	print "  - 'help' or 'h': displays this menu"
+	print "  - 'online' or 'o': returns list of all online users"
+	print "  - 'quit' or 'q': quits server"
+	print "  - 'who' or 'w' <user>: returns public key of user"
 
 
-HOST = ""
-PORT = 8080
-reuse_time = 1
+''' 
+      ---server_monitor(...)---
+Parameters: message_db - reference to message database
+Return: *None*  
 
-socket_fd = socket(AF_INET, SOCK_STREAM)
-socket_fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, reuse_time)
+Server monitor thread
+'''
+def server_monitor(message_db):
+	print 'MCS 425 - Crypto Chat Server Program'
+	print 'by: Chris Schultz and Sabine Ye\n'
+	print '***Disclaimer: This program is for educational purposes. Authors make'
+	print 'no guarantee on absolute secrecy of a message sent between users'
+	print 'of this program. Also, Authors take no responsibilities for any'
+	print 'actions taken by users of this program.\n' 
 
-socket_fd.bind((HOST, PORT))
-socket_fd.listen(10)
+	print 'Server is running!!!\n'
+        commands_available()
 
-while True:
-	connfd, addr = socket_fd.accept()
-	thread.start_new_thread(client_thread, (connfd,message_db,))
+    	while True:
+		try:
+      			print 'Input Command >> '
+      			msg = sys.stdin.readline().strip().lower()
+      			if msg == 'help' or msg == 'h':
+        			commands_available()
+      			elif 'get' in msg or 'g' in msg:
+				split = msg.split()
+				it = iter(message_db.message_database[split[1]])
+				for msg in it:
+					print msg
+					print '\n'
+      			elif msg == 'online' or msg == 'o':
+				for user in  message_db.message_database:
+					print user, ', ',
+				print '' 
+      			elif msg == 'quit' or msg == 'q':
+        			os._exit(1)
+			elif 'who'in msg or 'w' in msg:
+				split = msg.split()
+				print message_db.rsa_public_keys[split[1]]
+      			else:
+        			print '*Error: input was not a recognized command*'
+        			commands_available()
+			print ''
+  		except Exception:
+			print '*Error: error with input*\n'
+        		commands_available()
 
+''' 
+      ---main(...)---
+Parameters: *None*
+Return: *None*  
+
+Starting point of Program
+'''
+def main():
+	message_db = MessageDB()
+
+
+	HOST = ""
+	PORT = 8080
+	reuse_time = 1
+
+	socket_fd = socket(AF_INET, SOCK_STREAM)
+	socket_fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, reuse_time)
+
+	socket_fd.bind((HOST, PORT))
+	socket_fd.listen(10)
+
+	thread.start_new_thread(server_monitor, (message_db,))
+
+	while True:
+		connfd, addr = socket_fd.accept()
+		thread.start_new_thread(client_thread, (connfd,message_db,))
+
+if __name__ == '__main__':
+  main()
